@@ -60,8 +60,12 @@ test("register, persist, assign, upload policy, review draft, respond, resolve, 
   await form
     .getByLabel("Customer email", { exact: true })
     .fill("synthetic-customer@example.com");
-  await form.getByLabel("Priority", { exact: true }).selectOption("normal");
-  await form.getByLabel("Category", { exact: true }).selectOption("delivery");
+  await form
+    .getByRole("combobox", { name: "Priority", exact: true })
+    .selectOption("normal");
+  await form
+    .getByRole("combobox", { name: "Category", exact: true })
+    .selectOption("delivery");
   await form
     .getByLabel("Message", { exact: true })
     .fill(
