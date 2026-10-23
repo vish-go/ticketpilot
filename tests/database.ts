@@ -1,0 +1,78 @@
+import { readFile, readdir } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { PGlite } from "@electric-sql/pglite";
+import { postgres, type Database } from "../server/db.js";
+import { migrate } from "../server/migrate.js";
+
+// Local execution uses PostgreSQL compiled to WASM. TEST_DATABASE_URL opts into
+// a dedicated native test database. App fixtures use a disposable schema;
+// optional pgvector is provisioned once in public and remains after cleanup.
+// The test role needs extension-install privileges if vector is available.
+// Neither route resets a database or drops another run's fixture schema.
+export async function testDatabase(): Promise<{
+  db: Database;
+  dispose(): Promise<void>;
+}> {
+  if (process.env.TEST_DATABASE_URL) {
+    const schema = `api_test_${randomBytes(12).toString("hex")}`;
+    const administrative = postgres(process.env.TEST_DATABASE_URL);
+    const url = new URL(process.env.TEST_DATABASE_URL);
+    url.searchParams.set(
+      "options",
+      `${url.searchParams.get("options") || ""} -c search_path=${schema},public`.trim(),
+    );
+    const db = postgres(url.toString());
+    const dispose = async () => {
+      await db.close();
+      try {
+        await administrative.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);
+      } finally {
+        await administrative.close();
+      }
+    };
+    try {
+      // Extensions are database-wide, while app fixtures use isolated schemas.
+      // Installing vector through an isolated search_path puts its type in that
+      // disposable schema and breaks parallel suites (or drops the extension
+      // during cleanup). Provision it once in public under the migration lock.
+      await administrative.transaction(async (tx) => {
+        await tx.query("SELECT pg_advisory_xact_lock(778901)");
+        const available = await tx.query(
+          "SELECT 1 FROM pg_available_extensions WHERE name='vector'",
+        );
+        if (available.rows.length)
+          await tx.query(
+            "CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public",
+          );
+      });
+      await administrative.query(`CREATE SCHEMA ${schema}`);
+      await migrate(db);
+      return { db, dispose };
+    } catch (error) {
+      await dispose();
+      throw error;
+    }
+  }
+  const pg = new PGlite();
+  const wrap = (connection: any): Database => ({
+    query: async (sql, params) => {
+      const result = await connection.query(sql, params);
+      return { rows: result.rows, rowCount: result.affectedRows ?? null };
+    },
+    transaction: async (work) =>
+      connection.transaction((tx: any) => work(wrap(tx))),
+    close: () => pg.close(),
+  });
+  try {
+    const directory = new URL("../migrations/", import.meta.url);
+    for (const filename of (await readdir(directory))
+      .filter((file) => file.endsWith(".sql"))
+      .sort()) {
+      await pg.exec(await readFile(new URL(filename, directory), "utf8"));
+    }
+    return { db: wrap(pg), dispose: () => pg.close() };
+  } catch (error) {
+    await pg.close();
+    throw error;
+  }
+}

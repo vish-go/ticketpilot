@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { EmailError, sendEmail } from "./email.js";
+import { processWorkflowJobs } from "./workflows.js";
 
 interface JobDatabase {
   query(
@@ -18,7 +19,10 @@ export async function processJobs(
   // Expired leases are recoverable after a crashed process. Resend idempotency keys limit duplicate sends.
   // The lease is longer than the provider timeout; processing status cannot be claimed by another worker.
   const jobs = await database.transaction(async (tx) => {
-    await tx.query(`UPDATE outbox SET status='pending', locked_at=NULL
+    await tx.query(`UPDATE outbox SET
+      status=CASE WHEN attempts >= 5 THEN 'failed' ELSE 'pending' END,
+      last_error=CASE WHEN attempts >= 5 THEN 'lease_expired' ELSE last_error END,
+      locked_at=NULL
       WHERE status='processing' AND locked_at < now() - interval '5 minutes'`);
     const { rows } = await tx.query(`SELECT * FROM outbox
       WHERE status='pending' AND available_at <= now() AND attempts < 5
@@ -95,7 +99,10 @@ async function run(): Promise<void> {
   while (!stopping) {
     try {
       const result = await processJobs(db);
-      console.log(JSON.stringify({ event: "jobs_processed", ...result }));
+      const workflowSteps = await processWorkflowJobs(db);
+      console.log(
+        JSON.stringify({ event: "jobs_processed", ...result, workflowSteps }),
+      );
     } catch {
       console.error(JSON.stringify({ event: "jobs_failed" }));
     }

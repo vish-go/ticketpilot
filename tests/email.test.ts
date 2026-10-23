@@ -199,3 +199,75 @@ test("durable worker retries failures, recovers leases, and escalates each overd
     await pg.close();
   }
 });
+
+test("a crash during the final email attempt becomes terminal after lease expiry", async () => {
+  const pg = new PGlite();
+  const originalFetch = globalThis.fetch;
+  let providerCalls = 0;
+  globalThis.fetch = async () => {
+    providerCalls++;
+    throw new Error("Expired final attempts must not call the provider");
+  };
+  try {
+    await pg.exec(
+      await readFile(
+        new URL("../migrations/001_initial.sql", import.meta.url),
+        "utf8",
+      ),
+    );
+    const org = randomUUID(),
+      ticket = randomUUID(),
+      outbox = randomUUID();
+    await pg.query("INSERT INTO organizations(id,name) VALUES($1,$2)", [
+      org,
+      "Crash recovery",
+    ]);
+    await pg.query(
+      `INSERT INTO tickets(id,org_id,subject,body,customer_email,response_due_at,resolution_due_at)
+       VALUES($1,$2,'Question','Question','test@example.com',now()+interval '1 hour',now()+interval '2 hours')`,
+      [ticket, org],
+    );
+    await pg.query(
+      `INSERT INTO outbox(id,org_id,ticket_id,recipient,subject,body,status,attempts,locked_at)
+       VALUES($1,$2,$3,'test@example.com','Test','hello','processing',5,now()-interval '6 minutes')`,
+      [outbox, org, ticket],
+    );
+    const wrap = (connection: any): any => ({
+      query: (sql: string, params?: unknown[]) => connection.query(sql, params),
+      transaction: (work: (tx: any) => Promise<unknown>) =>
+        connection.transaction((tx: any) => work(wrap(tx))),
+    });
+    process.env.EMAIL_PROVIDER = "resend";
+    process.env.RESEND_API_KEY = "synthetic-test-key";
+    process.env.EMAIL_FROM = "test@example.com";
+    await processJobs(wrap(pg));
+    assert.deepEqual(
+      (
+        await pg.query(
+          "SELECT status,attempts,last_error,locked_at FROM outbox WHERE id=$1",
+          [outbox],
+        )
+      ).rows[0],
+      {
+        status: "failed",
+        attempts: 5,
+        last_error: "lease_expired",
+        locked_at: null,
+      },
+    );
+    await processJobs(wrap(pg));
+    assert.equal(providerCalls, 0);
+    assert.equal(
+      (
+        await pg.query<{ status: string }>(
+          "SELECT status FROM outbox WHERE id=$1",
+          [outbox],
+        )
+      ).rows[0]?.status,
+      "failed",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    await pg.close();
+  }
+});

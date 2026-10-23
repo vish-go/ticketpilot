@@ -10,6 +10,10 @@ Register a workspace, create a ticket, assign it to a member, write a public rep
 
 The source includes authentication/session handling, workspace roles, ticket search/filter/pagination, versioned edits, conversation/activity history, text knowledge intake, AI adapter boundaries, and database-backed analytics. Consult the release report for feature-by-feature verification rather than treating this inventory as an acceptance-test result.
 
+## Durable sandbox workflow
+
+Open a ticket as an owner/admin, create a synthetic order in **Delivery recovery workflow**, start a run and advance its steps. Inspect the exact proposal/hash, approve or reject, then advance to a retained response draft. The normal worker also advances pending steps with native PostgreSQL. This is deterministic synthetic orchestration: it makes no payment-provider call and sends no message. See [workflow architecture](docs/agentic-architecture.md), [milestone evidence](docs/milestone-verification.md) and [engineering scorecard](docs/engineering-scorecard.md).
+
 ## Stack and architecture
 
 TypeScript · Node.js 24 · Express · React · Vite · PostgreSQL 16 · SQL migrations · Node test runner · PGlite integration-test runtime.
@@ -78,7 +82,7 @@ npm audit --omit=dev --audit-level=high
 npm run evaluate
 ```
 
-Browser acceptance tests use `npm run test:e2e` after installing Playwright Chromium and configuring a disposable PostgreSQL `DATABASE_URL`. CI provisions pgvector/PostgreSQL and installs Chromium. Never point acceptance tests at customer data. `TEST_DATABASE_URL` enables the real PostgreSQL contract test when present.
+Browser acceptance tests use `npm run test:e2e` after installing Playwright Chromium and configuring a disposable PostgreSQL `DATABASE_URL`. CI provisions pgvector/PostgreSQL and installs Chromium. Never point acceptance tests at customer data. `TEST_DATABASE_URL` enables native integration suites against a dedicated test database. Their role must be allowed to install pgvector when available: the extension is shared in `public` and retained, while application fixtures use disposable schemas.
 
 CI runs these checks. Tests using PGlite exercise embedded PostgreSQL, not a deployed PostgreSQL server. Deterministic provider tests are separate from live-provider verification. Browser, Docker, security-audit, load-test, and evaluation evidence should be recorded in the release report only after execution.
 

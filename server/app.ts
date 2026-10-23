@@ -18,6 +18,7 @@ import { registerOrganizationRoutes } from "./routes/organizations.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 import { registerKnowledgeRoutes } from "./routes/knowledge.js";
 import { registerAnalyticsRoutes } from "./routes/analytics.js";
+import { registerWorkflowRoutes } from "./routes/workflows.js";
 
 /** Middleware order is security-critical: public integrations, session, then tenant. */
 export function createApp(db: Database) {
@@ -98,6 +99,7 @@ export function createApp(db: Database) {
   registerTicketRoutes(context);
   registerKnowledgeRoutes(context);
   registerAnalyticsRoutes(context);
+  registerWorkflowRoutes(context);
   app.use("/api", (_req, res) =>
     res.status(404).json({ error: "Endpoint not found" }),
   );
