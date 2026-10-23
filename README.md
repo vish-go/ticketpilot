@@ -82,7 +82,7 @@ npm audit --omit=dev --audit-level=high
 npm run evaluate
 ```
 
-Browser acceptance tests use `npm run test:e2e` after installing Playwright Chromium and configuring a disposable PostgreSQL `DATABASE_URL`. CI provisions pgvector/PostgreSQL and installs Chromium. Never point acceptance tests at customer data. `TEST_DATABASE_URL` enables the real PostgreSQL contract test when present.
+Browser acceptance tests use `npm run test:e2e` after installing Playwright Chromium and configuring a disposable PostgreSQL `DATABASE_URL`. CI provisions pgvector/PostgreSQL and installs Chromium. Never point acceptance tests at customer data. `TEST_DATABASE_URL` enables native integration suites against a dedicated test database. Their role must be allowed to install pgvector when available: the extension is shared in `public` and retained, while application fixtures use disposable schemas.
 
 CI runs these checks. Tests using PGlite exercise embedded PostgreSQL, not a deployed PostgreSQL server. Deterministic provider tests are separate from live-provider verification. Browser, Docker, security-audit, load-test, and evaluation evidence should be recorded in the release report only after execution.
 

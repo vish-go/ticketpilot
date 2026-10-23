@@ -42,9 +42,15 @@ The email regression verifies that a crash during the final delivery attempt bec
 
 - All actions and refunds are synthetic database operations. No real payment, customer email, external AI request, embedding request or paid provider was triggered.
 - Locally observed concurrency uses PGlite, which serializes database transactions. It verifies application idempotency and invariants under concurrent requests, not native PostgreSQL connection-pool contention or multi-process row locks.
-- Native PostgreSQL, pgvector behavior, Docker and a new CI execution were not available to this local verification task. CI is configured to run tests against PostgreSQL/pgvector and now also runs the existing evaluation command; its actual result must be checked independently.
+- Native PostgreSQL was unavailable locally. The subsequent successful GitHub Actions run below validates native migrations/API/workflow tests and browser acceptance on the pgvector/PostgreSQL service. It does not establish broader vector retrieval quality, multi-process worker crash recovery, Docker application deployment or production performance.
 - No live/staging deployment, restore drill, representative model evaluation, multilingual assessment or production capacity claim follows from these checks.
 
 ## Native CI defect and remediation
 
 The [first branch run](https://github.com/vish-go/ticketpilot/actions/runs/39939744845) on `5cef961` failed in native migrations: parallel isolated API/workflow schemas could observe an already installed pgvector extension whose `vector` type lived in the other suite's schema. Native extension objects are database-wide; the embedded runtime did not exercise this path. The test setup now provisions the optional extension in `public` under the same advisory lock before running schema-isolated application migrations. No test was disabled, serialized away, or relaxed. Local API/workflow regressions and TypeScript were rerun; the subsequent GitHub run provides native validation. [Draft PR #1](https://github.com/vish-go/ticketpilot/pull/1) preserves the existing default branch.
+
+## Native CI success and delivery
+
+[GitHub Actions run 39939999105](https://github.com/vish-go/ticketpilot/actions/runs/39939999105) **passed** on code commit `16d7e793f32888f63a8938cda5f4886a5c58364b`: reproducible `npm ci`, formatting, typecheck, all 38 tests (API and workflow suites use native PostgreSQL), evaluation, production build, online production dependency audit and full Chromium acceptance. The job's pgvector/PostgreSQL 16 service initialized successfully, migrations ran across parallel isolated schemas, and the new concurrent approval/resume test passed with a real connection pool. Those assertions do not cover all native worker-contention scenarios.
+
+[Draft PR #1](https://github.com/vish-go/ticketpilot/pull/1) contains the implementation and evidence. No merge was performed. A final documentation/comment-only commit records this observed code result; it changes no executable behavior. Native test setup requires a dedicated test database: application fixtures are disposable schemas, but optional pgvector is installed once in `public` and intentionally retained. An extension already installed in another schema is not automatically moved or dropped.

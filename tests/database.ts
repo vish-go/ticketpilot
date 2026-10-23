@@ -5,8 +5,10 @@ import { postgres, type Database } from "../server/db.js";
 import { migrate } from "../server/migrate.js";
 
 // Local execution uses PostgreSQL compiled to WASM. TEST_DATABASE_URL opts into
-// a real PostgreSQL service and creates only a uniquely named, disposable schema.
-// Neither route resets a shared database or touches another run's schema.
+// a dedicated native test database. App fixtures use a disposable schema;
+// optional pgvector is provisioned once in public and remains after cleanup.
+// The test role needs extension-install privileges if vector is available.
+// Neither route resets a database or drops another run's fixture schema.
 export async function testDatabase(): Promise<{
   db: Database;
   dispose(): Promise<void>;

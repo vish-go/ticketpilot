@@ -1,6 +1,6 @@
 # Engineering scorecard — 23 October 2026
 
-Scope: incremental deterministic sandbox milestone. Scores are reviewer judgments against the requested customer-pilot target, not certifications or mathematical measurements. No 10/10 claim. Local evidence is in `baseline-audit.md` and `milestone-verification.md`; native branch CI must be reported separately when observed.
+Scope: incremental deterministic sandbox milestone. Scores are reviewer judgments against the requested customer-pilot target, not certifications or mathematical measurements. No 10/10 claim. Local evidence is in `baseline-audit.md` and `milestone-verification.md`; native branch [CI passed on `16d7e79`](https://github.com/vish-go/ticketpilot/actions/runs/39939999105). Native migrations and concurrent approval/resume contracts are covered; competing workers, process crashes and representative load are still unmeasured.
 
 | Area | Score / 10 | Evidence | Main weakness / remediation |
 | --- | --- | --- | --- |

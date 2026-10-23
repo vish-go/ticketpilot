@@ -35,3 +35,5 @@ See `docs/milestone-verification.md`, `docs/engineering-scorecard.md`, `docs/sec
 ## GitHub delivery
 
 Implementation commit `5cef961` was pushed on the dedicated branch and [draft PR #1](https://github.com/vish-go/ticketpilot/pull/1) opened against the existing default branch. No merge or history rewrite was performed. Its first native CI run exposed shared pgvector extension installation inside disposable test schemas; the test setup now provisions that database-wide extension in `public` under the migration advisory lock before schema-scoped migrations. Native suites remain enabled. See the milestone verification report for subsequent CI evidence.
+
+Native [CI run 39939999105](https://github.com/vish-go/ticketpilot/actions/runs/39939999105) **passed** on corrected code commit `16d7e79`, including 38 tests, native PostgreSQL migrations/API/workflow contracts, concurrent approval/resume regression, evaluation, build, audit and Chromium acceptance. Final evidence/comment-only changes record that outcome. The next operational gate is native competing worker/process-crash and deployment/restore validation, not another claim of general production readiness.
