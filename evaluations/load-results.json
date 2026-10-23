@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-10-23T09:15:02.523Z",
+  "completedAt": "2026-10-23T09:15:03.273Z",
+  "environment": {
+    "node": "v24.19.0",
+    "os": "linux 6.18.55 x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpuCount": 9,
+    "memoryBytes": 10451439616,
+    "database": "PGlite 0.5.11, embedded PostgreSQL in memory; all repository migrations applied; no networked database or pool"
+  },
+  "datasetRequested": 30,
+  "ticketsCreated": 30,
+  "concurrency": 4,
+  "organizationId": "80ac8046-915b-49db-b5b6-e434ee5363ab",
+  "elapsedMs": 386.92165100000005,
+  "measuredRequestsPerSecond": 232.60523097478458,
+  "overall": {
+    "requests": 90,
+    "errors": 0,
+    "errorRate": 0,
+    "p50Ms": 17.133376999999996,
+    "p95Ms": 28.145538999999985
+  },
+  "operations": {
+    "create": {
+      "requests": 30,
+      "errors": 0,
+      "errorRate": 0,
+      "p50Ms": 20.48674900000003,
+      "p95Ms": 31.742962000000034
+    },
+    "list": {
+      "requests": 30,
+      "errors": 0,
+      "errorRate": 0,
+      "p50Ms": 15.594274999999925,
+      "p95Ms": 20.922616000000062
+    },
+    "update": {
+      "requests": 30,
+      "errors": 0,
+      "errorRate": 0,
+      "p50Ms": 17.749903000000018,
+      "p95Ms": 22.862851999999975
+    }
+  },
+  "limitations": "Small local smoke load with synthetic data. Not a scalability benchmark. No warm-up; registration excluded. All latency samples include failures. In-memory test database is discarded after this run. Embedded PostgreSQL serializes database operations; this does not test server pooling or multi-process lock contention."
+}

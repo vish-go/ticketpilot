@@ -1,0 +1,20 @@
+[
+  {"text":"I need a refund for my purchase", "category":"refund"},
+  {"text":"Please return my money back", "category":"refund"},
+  {"text":"Why was I charged twice?", "category":"billing"},
+  {"text":"Can you send the invoice?", "category":"billing"},
+  {"text":"My shipment is late", "category":"delivery"},
+  {"text":"Where is the tracking for my parcel?", "category":"delivery"},
+  {"text":"The item arrived damaged", "category":"product_complaint"},
+  {"text":"I received the wrong item", "category":"product_complaint"},
+  {"text":"The app crashes with an error", "category":"technical_issue"},
+  {"text":"I cannot log in to the account", "category":"technical_issue"},
+  {"text":"What colours are available?", "category":"general_inquiry"},
+  {"text":"Do you offer gift wrapping?", "category":"general_inquiry"},
+  {"text":"My debit balance changed unexpectedly", "category":"billing"},
+  {"text":"The courier has not arrived", "category":"delivery"},
+  {"text":"The screen freezes when I open settings", "category":"technical_issue"},
+  {"text":"The stitching came apart", "category":"product_complaint"},
+  {"text":"I would like reimbursement", "category":"refund"},
+  {"text":"Do you have a shop in Pune?", "category":"general_inquiry"}
+]
