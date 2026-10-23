@@ -29,6 +29,20 @@ export async function testDatabase(): Promise<{
       }
     };
     try {
+      // Extensions are database-wide, while app fixtures use isolated schemas.
+      // Installing vector through an isolated search_path puts its type in that
+      // disposable schema and breaks parallel suites (or drops the extension
+      // during cleanup). Provision it once in public under the migration lock.
+      await administrative.transaction(async (tx) => {
+        await tx.query("SELECT pg_advisory_xact_lock(778901)");
+        const available = await tx.query(
+          "SELECT 1 FROM pg_available_extensions WHERE name='vector'",
+        );
+        if (available.rows.length)
+          await tx.query(
+            "CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public",
+          );
+      });
       await administrative.query(`CREATE SCHEMA ${schema}`);
       await migrate(db);
       return { db, dispose };

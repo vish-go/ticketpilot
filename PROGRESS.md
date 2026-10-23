@@ -31,3 +31,7 @@ Do not mark all phases complete. Native PostgreSQL/Docker/staging and restore ev
 6. Expand reviewed evaluation data and retrieval judgments, then approved provider smoke tests; verify Docker, backup restore and staging without real customer data.
 
 See `docs/milestone-verification.md`, `docs/engineering-scorecard.md`, `docs/security-review.md`, `docs/agentic-architecture.md` and `docs/release-readiness.md` for evidence and unresolved gates.
+
+## GitHub delivery
+
+Implementation commit `5cef961` was pushed on the dedicated branch and [draft PR #1](https://github.com/vish-go/ticketpilot/pull/1) opened against the existing default branch. No merge or history rewrite was performed. Its first native CI run exposed shared pgvector extension installation inside disposable test schemas; the test setup now provisions that database-wide extension in `public` under the migration advisory lock before schema-scoped migrations. Native suites remain enabled. See the milestone verification report for subsequent CI evidence.
