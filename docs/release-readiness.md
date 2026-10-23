@@ -1,5 +1,14 @@
 # Release readiness — 2026-10-23
 
+## Current agentic foundation checkpoint
+
+The original report below is preserved as historical evidence. This branch adds the durable **deterministic sandbox** workflow, exact owner/admin approval, atomic synthetic refunds, retained response drafts, independent security fixes and a refactored frontend. See [current milestone verification](milestone-verification.md), [baseline audit](baseline-audit.md), [scorecard and prioritized blockers](engineering-scorecard.md) and [workflow architecture](agentic-architecture.md). New functionality does not represent live model agents or complete Phase 3 policy-grounded automation.
+
+Local browser acceptance now includes both approve and reject paths plus cross-tenant denial. Database tests verify no outbox is created, invalid approvals fail closed, concurrent duplicates execute once, and injected failures roll back. Native PostgreSQL behavior must be assessed from the branch CI run; local execution used PGlite. Docker, staging, live providers, erasure, email ownership and representative evaluations remain release gates. No real payment, customer message, paid service or default-branch merge was performed.
+
+## Original platform evidence
+
+
 **Decision: working local engineering build; not ready to accept real customer data.** The source is implemented and locally tested. A live service, independent security certification, every requested enhancement, and externally verified AI/email are not claimed.
 
 ## Delivered functionality

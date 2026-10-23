@@ -1706,3 +1706,61 @@ small,
     overflow-wrap: anywhere;
   }
 }
+
+.workflow-console {
+  border: 1px solid var(--border, #dce3df);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  background: var(--surface, #fff);
+}
+.workflow-heading,
+.workflow-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.workflow-heading h3 {
+  margin: 0;
+}
+.workflow-actions {
+  margin-bottom: 16px;
+}
+.workflow-console select,
+.workflow-console input {
+  min-width: 0;
+  max-width: 100%;
+}
+.workflow-evidence {
+  overflow: auto;
+  max-height: 320px;
+  padding: 12px;
+  background: #f3f6f4;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.workflow-hash {
+  overflow-wrap: anywhere;
+}
+.workflow-draft {
+  white-space: pre-wrap;
+}
+.workflow-timeline {
+  padding-left: 20px;
+}
+.workflow-timeline li {
+  padding: 10px 0;
+}
+.workflow-timeline time {
+  display: block;
+  font-size: 12px;
+  color: #68766f;
+}
+.workflow-timeline p {
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+.workflow-detail details {
+  margin-top: 18px;
+}

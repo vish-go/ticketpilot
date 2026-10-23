@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 
-/** Requires a disposable PostgreSQL DATABASE_URL. AI is the controlled local baseline, never an external provider. */
-test("register, persist, assign, upload policy, review draft, respond, resolve, deny another tenant", async ({
+/** Uses disposable embedded PostgreSQL locally or DATABASE_URL in CI. Never calls an external AI/payment provider. */
+test("register, assign, review sandbox refund decisions, retain drafts, respond, persist, deny another tenant", async ({
   page,
   playwright,
   baseURL,
-}) => {
+}, testInfo) => {
   const suffix = randomBytes(6).toString("hex");
   const email = `e2e-${suffix}@example.com`;
   const password = randomBytes(24).toString("hex");
@@ -96,6 +96,184 @@ test("register, persist, assign, upload policy, review draft, respond, resolve, 
   await expect(
     drawer.getByLabel("Assigned agent", { exact: true }),
   ).toHaveValue(identity.user.id);
+
+  // Exercise the durable sandbox through the actual human approval controls.
+  const workflow = drawer.getByRole("region", { name: "Sandbox workflow" });
+  const startWorkflow = async () => {
+    await workflow
+      .getByRole("button", { name: "Create synthetic order", exact: true })
+      .click();
+    await expect(
+      workflow.getByLabel("Sandbox order ID", { exact: true }),
+    ).not.toHaveValue("");
+    const response = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/tickets/${created.id}/workflows`) &&
+        response.request().method() === "POST",
+    );
+    await workflow
+      .getByRole("button", { name: "Start sandbox workflow", exact: true })
+      .click();
+    const started = await response;
+    expect(started.status()).toBe(201);
+    const run = await started.json();
+    for (const state of [
+      "TRIAGED",
+      "GATHERING_CONTEXT",
+      "PLANNING",
+      "AWAITING_APPROVAL",
+    ]) {
+      const resumed = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/workflows/${run.id}/resume`),
+      );
+      await workflow
+        .getByRole("button", { name: "Advance one workflow step", exact: true })
+        .click();
+      expect((await resumed).ok()).toBeTruthy();
+      await expect
+        .poll(
+          async () =>
+            (
+              await (
+                await page.request.get(`/api/workflows/${run.id}`, {
+                  headers: { "X-Organization-Id": organizationId },
+                })
+              ).json()
+            ).run.state,
+        )
+        .toBe(state);
+      await expect(
+        workflow.getByRole("button", {
+          name: "Refresh workflows",
+          exact: true,
+        }),
+      ).toBeEnabled();
+    }
+    await expect(
+      workflow.getByRole("heading", {
+        name: "Exact proposed action",
+        exact: true,
+      }),
+    ).toBeVisible();
+    return run;
+  };
+  const rejectedRun = await startWorkflow();
+  await workflow
+    .getByLabel("Approval or rejection reason", { exact: true })
+    .fill("Reject this demonstration proposal; no action permitted.");
+  await workflow
+    .getByRole("button", { name: "Reject sandbox action", exact: true })
+    .click();
+  await expect(
+    workflow.getByRole("button", { name: "Refresh workflows", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    workflow.getByRole("button", {
+      name: "Advance one workflow step",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  const rejected = await (
+    await page.request.get(`/api/workflows/${rejectedRun.id}`, {
+      headers: { "X-Organization-Id": organizationId },
+    })
+  ).json();
+  expect(rejected.run.state).toBe("CANCELLED");
+  expect(rejected.approvals[0].decision).toBe("reject");
+
+  const approvedRun = await startWorkflow();
+  const beforeWorkflow = await (
+    await page.request.get(`/api/tickets/${created.id}`, {
+      headers: { "X-Organization-Id": organizationId },
+    })
+  ).json();
+  const messageRequests: string[] = [];
+  const trackMessageRequest = (request: import("@playwright/test").Request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().endsWith(`/api/tickets/${created.id}/messages`)
+    )
+      messageRequests.push(request.url());
+  };
+  page.on("request", trackMessageRequest);
+  try {
+    await workflow
+      .getByLabel("Approval or rejection reason", { exact: true })
+      .fill("Approve this exact synthetic refund for browser acceptance.");
+    await workflow
+      .getByRole("button", {
+        name: "Approve exact sandbox action",
+        exact: true,
+      })
+      .click();
+    await expect(
+      workflow.getByRole("button", {
+        name: "Advance one workflow step",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    for (const state of ["VERIFYING", "COMPLETED"]) {
+      await workflow
+        .getByRole("button", { name: "Advance one workflow step", exact: true })
+        .click();
+      await expect
+        .poll(
+          async () =>
+            (
+              await (
+                await page.request.get(`/api/workflows/${approvedRun.id}`, {
+                  headers: { "X-Organization-Id": organizationId },
+                })
+              ).json()
+            ).run.state,
+        )
+        .toBe(state);
+      await expect(
+        workflow.getByRole("button", {
+          name: "Refresh workflows",
+          exact: true,
+        }),
+      ).toBeEnabled();
+    }
+    await expect(
+      workflow.getByRole("heading", {
+        name: "Draft response — review before sending",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(workflow.getByText(/No real money moved\./)).toBeVisible();
+    await workflow
+      .getByRole("heading", {
+        name: "Draft response — review before sending",
+        exact: true,
+      })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath("sandbox-workflow.png"),
+    });
+    expect(messageRequests).toHaveLength(0);
+    const afterWorkflow = await (
+      await page.request.get(`/api/tickets/${created.id}`, {
+        headers: { "X-Organization-Id": organizationId },
+      })
+    ).json();
+    expect(afterWorkflow.messages).toEqual(beforeWorkflow.messages);
+    const completed = await (
+      await page.request.get(`/api/workflows/${approvedRun.id}`, {
+        headers: { "X-Organization-Id": organizationId },
+      })
+    ).json();
+    expect(completed.run.mode).toBe("deterministic-sandbox");
+    expect(completed.run.action_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(completed.approvals[0].action_hash).toBe(completed.run.action_hash);
+    expect(
+      completed.events.some(
+        (event: { tool: string }) => event.tool === "execute_approved_refund",
+      ),
+    ).toBeTruthy();
+  } finally {
+    page.off("request", trackMessageRequest);
+  }
   await drawer
     .getByRole("button", { name: "Suggest a reply", exact: true })
     .click();
@@ -155,6 +333,13 @@ test("register, persist, assign, upload policy, review draft, respond, resolve, 
       headers: { "X-Organization-Id": organizationId },
     });
     expect(impersonated.status()).toBe(403);
+    const foreignWorkflow = await other.get(
+      `/api/workflows/${approvedRun.id}`,
+      {
+        headers: { "X-Organization-Id": otherIdentity.organizations[0].id },
+      },
+    );
+    expect(foreignWorkflow.status()).toBe(404);
   } finally {
     await other.dispose();
   }

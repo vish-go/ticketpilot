@@ -49,7 +49,7 @@
     "rejectsObviousInjection": true,
     "scopedInputDoesNotInventForeignCitation": true
   },
-  "elapsedMs": 2,
+  "elapsedMs": 1,
   "limitations": [
     "Small handcrafted smoke dataset; no production accuracy claim.",
     "Local extractive baseline uses lexical retrieval, not semantic embeddings.",

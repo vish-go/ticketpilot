@@ -34,6 +34,7 @@ jobs:
       - run: npm run lint
       - run: npm run check
       - run: npm test
+      - run: npm run evaluate
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
       - run: npx playwright install --with-deps chromium
