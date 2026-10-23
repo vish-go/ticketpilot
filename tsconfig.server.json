@@ -13,6 +13,7 @@
   "exclude": [
     "tests",
     "client",
-    "evaluations"
+    "evaluations",
+    "server/dev.ts"
   ]
 }
